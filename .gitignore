@@ -1,2 +1,4 @@
-.idea
+
+# Local secrets & IDE
 tokens
+.idea/
