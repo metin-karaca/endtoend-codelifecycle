@@ -1,0 +1,7 @@
+hello:
+  tags:
+    - local
+  script:
+    - echo "Hello from $CI_RUNNER_DESCRIPTION"
+    - uname -a
+    - cat /etc/os-release
