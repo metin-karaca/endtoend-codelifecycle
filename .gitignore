@@ -2,3 +2,13 @@
 # Local secrets & IDE
 tokens
 .idea/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+*.tfvars
+!*.tfvars.example
+kubeconfig-*.yaml
