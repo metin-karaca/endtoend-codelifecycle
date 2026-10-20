@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is git-ignored.
+# In CI these come from the TF_VAR_admin_cidr and TF_VAR_ssh_public_key variables.
+admin_cidr     = "203.0.113.10/32"                 # curl -s ifconfig.me
+ssh_public_key = "ssh-ed25519 AAAA... you@laptop"  # cat ~/.ssh/id_ed25519.pub
+# aws_region    = "eu-central-1"
+# instance_type = "t3.medium"

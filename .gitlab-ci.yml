@@ -1,0 +1,106 @@
+# Terraform pipeline for the dev cluster.
+#   MR touching infra/       -> validate
+#   push to main (infra/)    -> validate -> plan -> apply
+#   Run pipeline on main     -> validate -> plan -> apply
+#   destroy (manual button)  -> terraform destroy
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: never
+
+stages:
+  - validate
+  - plan
+  - apply
+  - destroy
+
+variables:
+  TF_ROOT: infra/environments/dev
+  TF_STATE_NAME: dev
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+.rules:
+  mr_infra:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - infra/**/*
+        - .gitlab-ci.yml
+  main_infra:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+      changes:
+        - infra/**/*
+        - .gitlab-ci.yml
+
+.terraform:
+  image:
+    name: hashicorp/terraform:1.9
+    entrypoint: [""]
+  tags:
+    - local
+  before_script:
+    - cd "$TF_ROOT"
+    - export TF_HTTP_ADDRESS="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}"
+    - export TF_HTTP_LOCK_ADDRESS="${TF_HTTP_ADDRESS}/lock"
+    - export TF_HTTP_UNLOCK_ADDRESS="${TF_HTTP_ADDRESS}/lock"
+    - export TF_HTTP_LOCK_METHOD=POST
+    - export TF_HTTP_UNLOCK_METHOD=DELETE
+    - export TF_HTTP_USERNAME=gitlab-ci-token
+    - export TF_HTTP_PASSWORD="${CI_JOB_TOKEN}"
+    - export TF_HTTP_RETRY_WAIT_MIN=5
+    - terraform init
+  resource_group: terraform-dev # never run two jobs against the same state at once
+
+validate:
+  extends: .terraform
+  stage: validate
+  script:
+    - terraform fmt -check -recursive "$CI_PROJECT_DIR/infra"
+    - terraform validate
+  rules:
+    - !reference [.rules, mr_infra]
+    - !reference [.rules, main_infra]
+
+plan:
+  extends: .terraform
+  stage: plan
+  script:
+    - terraform plan -out=plan.tfplan
+  artifacts:
+    paths:
+      - $TF_ROOT/plan.tfplan
+    expire_in: 1 day
+    access: developer # plan files can contain secrets
+  rules:
+    - !reference [.rules, main_infra]
+
+apply:
+  extends: .terraform
+  stage: apply
+  needs: [plan]
+  script:
+    - terraform apply plan.tfplan
+    - terraform output
+  environment:
+    name: dev
+    action: start
+    on_stop: destroy
+  rules:
+    - !reference [.rules, main_infra]
+
+destroy:
+  extends: .terraform
+  stage: destroy
+  needs: []
+  script:
+    - terraform destroy -auto-approve
+  environment:
+    name: dev
+    action: stop
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: true
