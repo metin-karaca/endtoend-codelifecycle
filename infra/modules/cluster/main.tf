@@ -3,6 +3,14 @@ locals {
     Cluster   = var.cluster_name
     ManagedBy = "terraform"
   })
+
+  argocd_manifest = templatefile("${path.module}/templates/argocd.yaml.tftpl", {
+    argocd_chart_version      = var.argocd_chart_version
+    argocd_apps_chart_version = var.argocd_apps_chart_version
+    gitops_repo_url           = var.gitops_repo_url
+    gitops_revision           = var.gitops_revision
+    gitops_path               = var.gitops_path
+  })
 }
 
 data "aws_ami" "ubuntu" {
@@ -85,15 +93,15 @@ resource "aws_instance" "server" {
     volume_type = "gp3"
   }
 
-  user_data = <<-EOF
-    #!/bin/bash
-    set -euo pipefail
-    curl -sfL https://get.k3s.io | \
-      INSTALL_K3S_VERSION="${var.k3s_version}" \
-      K3S_TOKEN="${random_password.k3s_token.result}" \
-      INSTALL_K3S_EXEC="server --write-kubeconfig-mode 644" \
-      sh -
-  EOF
+  # user_data only runs on first boot, so any change to it must recreate the instance.
+  user_data_replace_on_change = true
+
+  user_data = templatefile("${path.module}/templates/server-init.sh.tftpl", {
+    k3s_version     = var.k3s_version
+    k3s_token       = random_password.k3s_token.result
+    install_argocd  = var.install_argocd
+    argocd_manifest = local.argocd_manifest
+  })
 
   tags = merge(local.tags, { Name = "${var.cluster_name}-server", Role = "server" })
 }

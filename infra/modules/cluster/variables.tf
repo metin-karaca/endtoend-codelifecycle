@@ -53,6 +53,42 @@ variable "k3s_version" {
   default     = "v1.31.4+k3s1"
 }
 
+variable "install_argocd" {
+  description = "Install Argo CD on the server node at boot."
+  type        = bool
+  default     = true
+}
+
+variable "argocd_chart_version" {
+  description = "Version of the argo-cd Helm chart (https://github.com/argoproj/argo-helm)."
+  type        = string
+  default     = "10.8.3"
+}
+
+variable "argocd_apps_chart_version" {
+  description = "Version of the argocd-apps Helm chart used for the root application."
+  type        = string
+  default     = "2.0.2"
+}
+
+variable "gitops_repo_url" {
+  description = "Git repository the root Argo CD application syncs from. Empty skips the root application."
+  type        = string
+  default     = ""
+}
+
+variable "gitops_revision" {
+  description = "Branch, tag or commit the root application tracks."
+  type        = string
+  default     = "main"
+}
+
+variable "gitops_path" {
+  description = "Folder in the repository that holds Argo CD Application manifests."
+  type        = string
+  default     = "gitops"
+}
+
 variable "tags" {
   description = "Extra tags added to all resources."
   type        = map(string)
