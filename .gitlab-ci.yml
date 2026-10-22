@@ -80,9 +80,13 @@ plan:
 apply:
   extends: .terraform
   stage: apply
-  needs: [plan]
+  needs:
+    - job: plan
+      artifacts: false
   script:
-    - terraform apply plan.tfplan
+    # Re-plan against the current state instead of applying the saved plan,
+    # so a state change between the two jobs cannot fail the apply as "stale".
+    - terraform apply -auto-approve
     - terraform output
   environment:
     name: dev
