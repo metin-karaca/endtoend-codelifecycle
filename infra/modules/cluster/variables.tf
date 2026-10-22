@@ -15,9 +15,9 @@ variable "instance_type" {
 }
 
 variable "node_count" {
-  description = "Total number of nodes, including the control-plane node."
+  description = "Total number of nodes, including the control-plane node. 1 = single-node cluster."
   type        = number
-  default     = 2
+  default     = 1
 
   validation {
     condition     = var.node_count >= 1
@@ -25,13 +25,14 @@ variable "node_count" {
   }
 }
 
-variable "admin_cidr" {
-  description = "CIDR allowed to reach the Kubernetes API and SSH, e.g. your public IP as x.x.x.x/32."
-  type        = string
+variable "ssh_allowed_cidrs" {
+  description = "CIDRs allowed to SSH into the nodes. Access is key-only; the Kubernetes API is never exposed and is reached through an SSH tunnel."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
 
   validation {
-    condition     = can(cidrhost(var.admin_cidr, 0))
-    error_message = "admin_cidr must be a valid CIDR block, e.g. 203.0.113.10/32."
+    condition     = alltrue([for c in var.ssh_allowed_cidrs : can(cidrhost(c, 0))])
+    error_message = "Every entry in ssh_allowed_cidrs must be a valid CIDR block, e.g. 203.0.113.10/32."
   }
 }
 

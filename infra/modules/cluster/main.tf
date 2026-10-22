@@ -30,20 +30,14 @@ resource "aws_security_group" "this" {
   name        = "${var.cluster_name}-sg"
   description = "Security group for the ${var.cluster_name} k3s cluster"
 
+  # Key-only SSH. The Kubernetes API (6443) is deliberately not exposed;
+  # kubectl reaches it through an SSH tunnel (see scripts/kubeconfig-dev.sh).
   ingress {
-    description = "SSH from admin"
+    description = "SSH (key-only)"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [var.admin_cidr]
-  }
-
-  ingress {
-    description = "Kubernetes API from admin"
-    from_port   = 6443
-    to_port     = 6443
-    protocol    = "tcp"
-    cidr_blocks = [var.admin_cidr]
+    cidr_blocks = var.ssh_allowed_cidrs
   }
 
   ingress {
@@ -91,17 +85,13 @@ resource "aws_instance" "server" {
     volume_type = "gp3"
   }
 
-  # The public IP is read from instance metadata at boot,
-  # because it is not known to Terraform before the instance exists.
   user_data = <<-EOF
     #!/bin/bash
     set -euo pipefail
-    IMDS_TOKEN=$(curl -sX PUT http://169.254.169.254/latest/api/token -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
-    PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $IMDS_TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
     curl -sfL https://get.k3s.io | \
       INSTALL_K3S_VERSION="${var.k3s_version}" \
       K3S_TOKEN="${random_password.k3s_token.result}" \
-      INSTALL_K3S_EXEC="server --tls-san $PUBLIC_IP --write-kubeconfig-mode 644" \
+      INSTALL_K3S_EXEC="server --write-kubeconfig-mode 644" \
       sh -
   EOF
 

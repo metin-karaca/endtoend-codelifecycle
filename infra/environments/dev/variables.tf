@@ -10,11 +10,6 @@ variable "instance_type" {
   default     = "t3.medium"
 }
 
-variable "admin_cidr" {
-  description = "Your public IP as x.x.x.x/32. Allowed to reach SSH and the Kubernetes API."
-  type        = string
-}
-
 variable "ssh_public_key" {
   description = "SSH public key content (the line from ~/.ssh/id_ed25519.pub)."
   type        = string

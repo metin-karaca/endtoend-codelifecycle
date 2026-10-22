@@ -8,7 +8,7 @@ output "ssh_command" {
   value       = module.cluster.ssh_command
 }
 
-output "kubeconfig_command" {
-  description = "Command that downloads a kubeconfig for this cluster."
-  value       = module.cluster.kubeconfig_command
+output "tunnel_command" {
+  description = "Opens an SSH tunnel so kubectl can reach the API at https://127.0.0.1:16443."
+  value       = module.cluster.tunnel_command
 }
