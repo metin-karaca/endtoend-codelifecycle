@@ -16,4 +16,6 @@ module "cluster" {
   instance_type  = var.instance_type
   node_count     = 1
   ssh_public_key = var.ssh_public_key
+
+  gitops_repo_url = "https://gitlab.com/mtnkrc/endtoend-codelifecycle.git"
 }

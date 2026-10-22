@@ -59,4 +59,20 @@ kubectl get nodes
 ./scripts/kubeconfig-dev.sh --close    # closes the tunnel
 ```
 
+## Argo CD
+
+Argo CD is installed at boot by the k3s Helm controller (`infra/modules/cluster/templates/argocd.yaml.tftpl`),
+together with a root application that syncs everything under `gitops/` from `main`.
+It takes 2–3 minutes after the instance starts.
+
+With the tunnel open and `KUBECONFIG` set:
+
+```bash
+kubectl -n argocd get pods
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo
+kubectl -n argocd port-forward svc/argocd-server 8080:80
+```
+
+Open http://localhost:8080 and log in as `admin` with the password above.
+
 The cluster is billed per hour; destroy it when you are done.

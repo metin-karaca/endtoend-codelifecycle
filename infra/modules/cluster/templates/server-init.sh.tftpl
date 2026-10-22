@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euo pipefail
+
+# Manifests in this folder are applied automatically by k3s on startup.
+# HelmChart resources are installed by the k3s Helm controller, so nothing
+# outside the instance needs access to the Kubernetes API.
+MANIFESTS=/var/lib/rancher/k3s/server/manifests
+mkdir -p "$MANIFESTS"
+%{ if install_argocd ~}
+cat > "$MANIFESTS/argocd.yaml" <<'YAML'
+${argocd_manifest}
+YAML
+%{ endif ~}
+
+curl -sfL https://get.k3s.io | \
+  INSTALL_K3S_VERSION="${k3s_version}" \
+  K3S_TOKEN="${k3s_token}" \
+  INSTALL_K3S_EXEC="server --write-kubeconfig-mode 644" \
+  sh -

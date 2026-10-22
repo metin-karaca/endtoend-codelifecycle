@@ -1,0 +1,51 @@
+# Argo CD itself, from the official chart.
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: argocd
+  namespace: kube-system
+spec:
+  repo: https://argoproj.github.io/argo-helm
+  chart: argo-cd
+  version: "${argocd_chart_version}"
+  targetNamespace: argocd
+  createNamespace: true
+  valuesContent: |-
+    configs:
+      params:
+        # TLS is terminated by the SSH tunnel / port-forward; no public ingress.
+        server.insecure: true
+    dex:
+      enabled: false
+%{ if gitops_repo_url != "" ~}
+---
+# Root "app of apps": everything under gitops_path is managed by Argo CD from Git.
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: argocd-apps
+  namespace: kube-system
+spec:
+  repo: https://argoproj.github.io/argo-helm
+  chart: argocd-apps
+  version: "${argocd_apps_chart_version}"
+  targetNamespace: argocd
+  valuesContent: |-
+    applications:
+      root:
+        namespace: argocd
+        project: default
+        source:
+          repoURL: ${gitops_repo_url}
+          targetRevision: ${gitops_revision}
+          path: ${gitops_path}
+          directory:
+            recurse: true
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: argocd
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+%{ endif ~}
