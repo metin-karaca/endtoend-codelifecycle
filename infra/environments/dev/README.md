@@ -18,14 +18,13 @@ Required CI/CD variables (Settings → CI/CD → Variables):
 |---|---|---|
 | `AWS_ACCESS_KEY_ID` | IAM access key | Masked, Protected |
 | `AWS_SECRET_ACCESS_KEY` | IAM secret key | Masked and hidden, Protected |
-| `TF_VAR_admin_cidr` | your public IP as `x.x.x.x/32` | Protected |
 | `TF_VAR_ssh_public_key` | content of `~/.ssh/id_ed25519.pub` | Protected |
 
 ## Locally
 
 ```bash
 cd infra/environments/dev
-cp terraform.tfvars.example terraform.tfvars   # fill in admin_cidr and ssh_public_key
+cp terraform.tfvars.example terraform.tfvars   # fill in ssh_public_key
 
 export GITLAB_TOKEN=<token with api scope>
 export TF_HTTP_ADDRESS="https://gitlab.com/api/v4/projects/mtnkrc%2Fendtoend-codelifecycle/terraform/state/dev"
@@ -46,12 +45,18 @@ or destroyed from your machine and vice versa.
 
 ## Connecting to the cluster
 
-Wait ~1 minute after apply for k3s to finish installing, then from this folder:
+SSH is open to any IP but accepts only your key. The Kubernetes API is not exposed to the
+internet; `kubectl` reaches it through an SSH tunnel, so it works from any network.
+
+From the repository root:
 
 ```bash
-eval "$(terraform output -raw kubeconfig_command)"
-export KUBECONFIG=$PWD/kubeconfig-endtoend-dev.yaml
+export GITLAB_TOKEN=<token with api scope>
+./scripts/kubeconfig-dev.sh            # opens the tunnel and writes ~/.kube/endtoend-dev.yaml
+export KUBECONFIG=~/.kube/endtoend-dev.yaml
 kubectl get nodes
+
+./scripts/kubeconfig-dev.sh --close    # closes the tunnel
 ```
 
 The cluster is billed per hour; destroy it when you are done.

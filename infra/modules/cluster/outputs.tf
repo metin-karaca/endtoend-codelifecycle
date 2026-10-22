@@ -18,7 +18,7 @@ output "ssh_command" {
   value       = "ssh ubuntu@${aws_instance.server.public_ip}"
 }
 
-output "kubeconfig_command" {
-  description = "Command that downloads a kubeconfig pointing at the cluster's public IP."
-  value       = "ssh ubuntu@${aws_instance.server.public_ip} cat /etc/rancher/k3s/k3s.yaml | sed 's/127.0.0.1/${aws_instance.server.public_ip}/' > kubeconfig-${var.cluster_name}.yaml"
+output "tunnel_command" {
+  description = "Opens an SSH tunnel so kubectl can reach the API at https://127.0.0.1:16443."
+  value       = "ssh -f -N -L 16443:127.0.0.1:6443 ubuntu@${aws_instance.server.public_ip}"
 }

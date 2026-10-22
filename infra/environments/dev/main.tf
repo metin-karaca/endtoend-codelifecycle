@@ -15,6 +15,5 @@ module "cluster" {
   cluster_name   = "endtoend-dev"
   instance_type  = var.instance_type
   node_count     = 1
-  admin_cidr     = var.admin_cidr
   ssh_public_key = var.ssh_public_key
 }
